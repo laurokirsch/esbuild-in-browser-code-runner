@@ -1,24 +1,44 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useState, useEffect, useRef } from 'react';
+
+import * as esbuild from 'esbuild-wasm';
 
 function App() {
+  const [input, setInput] = useState('');
+  const [code, setCode] = useState('');
+  const serviceRef = useRef<esbuild.Service>();
+
+  const startService = async () => {
+    serviceRef.current = await esbuild.startService({
+      worker: true,
+      wasmURL: '/esbuild.wasm',
+    });
+  };
+
+  useEffect(() => {
+    startService();
+  }, []);
+
+  const onTranspileClick = async () => {
+    if (!serviceRef.current) return;
+
+    const result = await serviceRef.current.transform(input, {
+      loader: 'jsx',
+      target: 'es2015',
+    });
+
+    setCode(result.code);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+      ></textarea>
+      <div>
+        <button onClick={onTranspileClick}>Transpile</button>
+      </div>
+      <pre>{code}</pre>
     </div>
   );
 }
