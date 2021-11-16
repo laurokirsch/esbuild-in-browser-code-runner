@@ -8,6 +8,7 @@ function App() {
   const [rawCodeInput, setRawCodeInput] = useState('');
   const [transpiledCode, setTranspiledCode] = useState('');
   const serviceRef = useRef<esbuild.Service>();
+  const iframeRef = useRef<any>();
 
   const startService = async () => {
     serviceRef.current = await esbuild.startService({
@@ -34,8 +35,26 @@ function App() {
       },
     });
 
-    setTranspiledCode(result.outputFiles[0].text);
+    // setTranspiledCode();
+    iframeRef.current.contentWindow.postMessage(
+      result.outputFiles[0].text,
+      '*'
+    );
   };
+
+  const html = `
+    <html>
+      <head></head>
+      <body>
+        <div id="root"></div>
+        <script>
+          window.addEventListener('message', (event) => {
+            eval(event.data);
+          }, false);
+        </script>
+      </body>
+    </html>
+  `;
 
   return (
     <div>
@@ -47,6 +66,13 @@ function App() {
         <button onClick={onTranspileClick}>Transpile</button>
       </div>
       <pre>{transpiledCode}</pre>
+
+      <iframe
+        ref={iframeRef}
+        srcDoc={html}
+        sandbox='allow-scripts'
+        title='code-output'
+      />
     </div>
   );
 }
