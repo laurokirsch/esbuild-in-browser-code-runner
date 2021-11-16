@@ -6,7 +6,6 @@ import { fetchPlugin } from './plugins/fetch-plugin';
 
 function App() {
   const [rawCodeInput, setRawCodeInput] = useState('');
-  const [transpiledCode, setTranspiledCode] = useState('');
   const serviceRef = useRef<esbuild.Service>();
   const iframeRef = useRef<any>();
 
@@ -23,6 +22,8 @@ function App() {
 
   const onTranspileClick = async () => {
     if (!serviceRef.current) return;
+
+    iframeRef.current.srcdoc = html;
 
     const result = await serviceRef.current.build({
       entryPoints: ['index.js'],
@@ -49,7 +50,12 @@ function App() {
         <div id="root"></div>
         <script>
           window.addEventListener('message', (event) => {
-            eval(event.data);
+            try {
+              eval(event.data);
+            } catch (err) {
+              const root = document.querySelector("#root");
+              root.innerHTML = '<div style="color: red;"><h4>Runtime Error:</h4>' + err + '</div>';
+            }
           }, false);
         </script>
       </body>
@@ -65,7 +71,6 @@ function App() {
       <div>
         <button onClick={onTranspileClick}>Transpile</button>
       </div>
-      <pre>{transpiledCode}</pre>
 
       <iframe
         ref={iframeRef}
